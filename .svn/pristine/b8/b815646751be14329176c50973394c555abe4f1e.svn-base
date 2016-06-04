@@ -1,0 +1,154 @@
+package main.torrent;
+
+import java.util.Date;
+import java.util.List;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.springframework.context.ApplicationContext;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.servlet.ModelAndView;
+
+import com.google.appengine.api.datastore.DatastoreService;
+import com.google.appengine.api.datastore.DatastoreServiceFactory;
+import com.google.appengine.api.datastore.Entity;
+import com.google.appengine.api.datastore.FetchOptions;
+import com.google.appengine.api.datastore.Key;
+import com.google.appengine.api.datastore.KeyFactory;
+import com.google.appengine.api.datastore.Query;
+import com.google.appengine.tools.admin.Application;
+
+@Controller
+@RequestMapping("/torrent")
+public class TorrentController
+{
+	// 테이블
+	private final String TB_TORRENT_ITEM = "torrentItem";
+	private final String TB_TORRENT_URL = "torrentUrl";
+	
+	// 컬럼
+	private final String CL_ITEM = "item";	// 아이템
+	private final String CL_URL = "url";		// URL
+	private final String CL_DATE = "date";		// URL
+	private final String CL_REGEX = "regex";		// REGEX
+	private final String CL_LINK = "link";		// LINK
+	private final String CL_LINK_IDX = "linkIdx";		// link index
+	private final String CL_TITLE = "title";		// TITLE
+	private final String CL_TITLE_IDX = "titleIdx";		// title index
+	
+	/**
+	 * 토렌트로 등록한 목록을 보여준다. 
+	 * ex) 겁쟁이 패달
+	 * @param model
+	 * @return
+	 */
+	@RequestMapping(value = "/list", method = RequestMethod.GET)
+	public String torrentList(ModelMap model)
+	{
+		// 데이터를 쿼리
+		DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+		Query query = new Query(TB_TORRENT_ITEM).addSort(CL_DATE, Query.SortDirection.DESCENDING);
+	    List<Entity> torrentItem = datastore.prepare(query).asList(FetchOptions.Builder.withLimit(10));
+
+		// 데이터를 모델에 담는다.
+	    model.addAttribute("torrentItem",  torrentItem);
+	    
+		// 뷰에 전달.
+		return "torrent/list";
+	}
+	
+	@RequestMapping(value = "/add", method = RequestMethod.GET)
+	public String torrentAdd(ModelMap model)
+	{
+		// 데이터를 쿼리
+		
+		// 데이터를 모델에 담는다.
+		
+		// 뷰에 전달.
+		return "torrent/add";
+	}
+	
+	/**
+	 * 토렌트를 추가한다. 
+	 * 입력대상은, 주소, 파싱정규식, 그룹번호
+	 * > 타이틀, 원래주소, 상대주소,
+	 * > 입력일 
+	 * @param model
+	 * @return
+	 */
+	@RequestMapping(value = "/insert", method = RequestMethod.GET)
+	public ModelAndView torrentAdd(HttpServletRequest request, ModelMap model)
+	{
+		// 파라미터가 있으면, 등록 한다.
+		String item = request.getParameter("item");
+		String url = request.getParameter("url");
+		String regex = request.getParameter("regex");
+		String titleIdx = request.getParameter("titleIdx");
+		String linkIdx = request.getParameter("linkIdx");
+		
+		// URL 값이 비어있다면 추가 화면으로 돌아간다. 
+		if (url.isEmpty()) {
+			return new ModelAndView("redirect:add");
+		}
+		// 데이터 입력		
+		// 데이터를 쿼리
+		// 데이터를 모델에 담는다.
+		// 뷰에 전달.
+		
+		// 토렌트 아이템 테이블
+		Key torrentItemKey = KeyFactory.createKey(TB_TORRENT_ITEM, item);        
+		Date date = new Date();
+        Entity torrentItem = new Entity(TB_TORRENT_ITEM, torrentItemKey);
+        torrentItem.setProperty(CL_ITEM, item);
+        torrentItem.setProperty(CL_DATE, date);
+
+        DatastoreService datastore = DatastoreServiceFactory.getDatastoreService();
+        datastore.put(torrentItem);
+        
+        // 토렌트 URL 테이블
+        Key torrentUrlKey = KeyFactory.createKey(TB_TORRENT_URL, url);        
+        Entity torrentUrl = new Entity(TB_TORRENT_URL, torrentUrlKey);
+        torrentUrl.setProperty(CL_ITEM, item);
+        torrentUrl.setProperty(CL_URL, url);
+        torrentUrl.setProperty(CL_REGEX, regex);
+        torrentUrl.setProperty(CL_TITLE_IDX, titleIdx);
+        torrentUrl.setProperty(CL_LINK_IDX, linkIdx);
+        torrentUrl.setProperty(CL_DATE, date);
+
+        datastore.put(torrentUrl);
+        
+        return new ModelAndView("redirect:list");
+	}
+	
+	/**
+	 * 한가지 토렌트에 대해, 수집한 목록을 보여준다.
+	 * @param model
+	 * @return
+	 */
+	@RequestMapping(value = "/item", method = RequestMethod.GET)
+	public String getPopupPage(ModelMap model)
+	{
+		// 데이터를 쿼리
+		// 데이터를 모델에 담는다.
+		// 뷰에 전달.
+		return "torrent/item";
+	}
+	
+	/**
+	 * 등록된 토렌트 주소로 접속하여 데이터를 수집한다. 
+	 * @param model
+	 * @return
+	 */
+	@RequestMapping(value = "/cron", method = RequestMethod.GET)
+	public String getAjaxPage(ModelMap model)
+	{
+		// 데이터를 모델에 담는다.
+		// 뷰에 전달.
+		model.addAttribute("result",  "TEXT FROM SERVER");
+		return "sample/ajax";
+	}
+}
